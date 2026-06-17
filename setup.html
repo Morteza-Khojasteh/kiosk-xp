@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Clock System — Device Setup</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0f1117;
+    color: #e8eaf0;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .bg-grid {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .card {
+    position: relative;
+    background: #1a1d27;
+    border: 1px solid #2a2d3d;
+    border-radius: 12px;
+    padding: 48px 52px;
+    width: 460px;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+  }
+
+  .logo-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 36px;
+  }
+
+  .logo-icon {
+    width: 40px;
+    height: 40px;
+    background: #22c55e;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .logo-icon svg {
+    width: 22px;
+    height: 22px;
+    fill: #0f1117;
+  }
+
+  .logo-text {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: #f0f2f8;
+  }
+
+  .logo-sub {
+    font-size: 11px;
+    color: #555870;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    margin-top: 1px;
+  }
+
+  h1 {
+    font-size: 22px;
+    font-weight: 600;
+    color: #f0f2f8;
+    letter-spacing: -0.4px;
+    margin-bottom: 8px;
+  }
+
+  .subtitle {
+    font-size: 13px;
+    color: #6b6f87;
+    line-height: 1.5;
+    margin-bottom: 32px;
+  }
+
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: #9094aa;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 8px;
+  }
+
+  input[type=text] {
+    width: 100%;
+    background: #0f1117;
+    border: 1px solid #2a2d3d;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 15px;
+    color: #f0f2f8;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.5px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  input[type=text]:focus {
+    border-color: #22c55e;
+  }
+
+  input[type=text]::placeholder {
+    color: #3a3d52;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    letter-spacing: 0;
+  }
+
+  .error {
+    display: none;
+    font-size: 12px;
+    color: #f87171;
+    margin-top: 8px;
+  }
+
+  .error.visible { display: block; }
+
+  button {
+    margin-top: 24px;
+    width: 100%;
+    background: #22c55e;
+    color: #0f1117;
+    border: none;
+    border-radius: 8px;
+    padding: 13px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    font-family: 'Segoe UI', Arial, sans-serif;
+  }
+
+  button:hover  { background: #16a34a; }
+  button:active { transform: scale(0.99); }
+
+  button:disabled {
+    background: #2a2d3d;
+    color: #555870;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .divider {
+    height: 1px;
+    background: #2a2d3d;
+    margin: 28px 0;
+  }
+
+  .server-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #555870;
+  }
+
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #22c55e;
+    flex-shrink: 0;
+    box-shadow: 0 0 6px #22c55e;
+  }
+
+  .dot.offline { background: #f87171; box-shadow: 0 0 6px #f87171; }
+
+  .version {
+    position: absolute;
+    bottom: 16px;
+    right: 20px;
+    font-size: 11px;
+    color: #2a2d3d;
+  }
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="card">
+
+  <div class="logo-row">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>
+    </div>
+    <div>
+      <div class="logo-text">Clock System</div>
+      <div class="logo-sub">company</div>
+    </div>
+  </div>
+
+  <h1>Device Setup</h1>
+  <p class="subtitle">Enter the device token provided by your administrator to register this terminal.</p>
+
+  <label for="token">Device Token</label>
+  <input type="text" id="token" placeholder="Paste your token here" autocomplete="off" spellcheck="false" />
+  <div class="error" id="error">Please enter a valid device token.</div>
+
+  <button id="saveBtn" onclick="saveToken()">Activate Device</button>
+
+  <div class="divider"></div>
+
+  <div class="server-row">
+    <div class="dot" id="dot"></div>
+    <span id="serverStatus">Checking server connection...</span>
+  </div>
+
+  <div class="version">v2.1.0</div>
+</div>
+
+<script>
+var SERVER_BASE = 'http://localhost/clockapp/';
+
+// Check server reachability
+function checkServer() {
+  var dot = document.getElementById('dot');
+  var status = document.getElementById('serverStatus');
+  var img = new Image();
+  var done = false;
+
+  var timer = setTimeout(function() {
+    if (!done) {
+      done = true;
+      dot.className = 'dot offline';
+      status.textContent = 'Server unreachable — check network connection';
+    }
+  }, 5000);
+
+  img.onload = function() {
+    if (!done) {
+      done = true;
+      clearTimeout(timer);
+      dot.className = 'dot';
+      status.textContent = 'Server reachable at localhost';
+    }
+  };
+  img.onerror = function() {
+    if (!done) {
+      done = true;
+      clearTimeout(timer);
+      // onerror can still mean server is up (no favicon = normal)
+      dot.className = 'dot';
+      status.textContent = 'Server reachable at localhost';
+    }
+  };
+  img.src = SERVER_BASE + 'favicon.ico?' + Date.now();
+}
+
+function saveToken() {
+  var val = document.getElementById('token').value.trim();
+  var err = document.getElementById('error');
+  var btn = document.getElementById('saveBtn');
+
+  if (!val) {
+    err.className = 'error visible';
+    err.textContent = 'Please enter a valid device token.';
+    return;
+  }
+
+  err.className = 'error';
+  btn.disabled = true;
+  btn.textContent = 'Activating...';
+
+  // Write token to a local file via AHK bridge
+  // AHK monitors window title for commands
+  document.title = 'CMD:SAVE_TOKEN:' + val;
+
+  // AHK will close this window and open the main app
+  // Fallback: if AHK doesn't respond in 3s, show error
+  setTimeout(function() {
+    btn.disabled = false;
+    btn.textContent = 'Activate Device';
+    err.className = 'error visible';
+    err.textContent = 'Could not save token — launcher not running.';
+    document.title = 'Clock System — Device Setup';
+  }, 3000);
+}
+
+// Allow Enter key to submit
+document.getElementById('token').addEventListener('keydown', function(e) {
+  if (e.keyCode === 13) saveToken();
+});
+
+checkServer();
+</script>
+</body>
+</html>
