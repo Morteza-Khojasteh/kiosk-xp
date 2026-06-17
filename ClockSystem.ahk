@@ -166,6 +166,9 @@ Return
 
 ; ── Kill the main kiosk window ─────────────────────────────────
 KillMain:
+  ; FIXED: Immediately turn off the crash monitor loop during any intentional window tear-down
+  SetTimer, MonitorTick, Off
+  
   g_mainHWND := GetMainWindowHWND()
   If (g_mainHWND > 0) {
     WinClose, ahk_id %g_mainHWND%
@@ -267,6 +270,10 @@ Return
 
 ; ── Close everything immediately ────────────────────────────────
 DoClose:
+  ; FIXED: Immediately turn off active timers to prevent any race conditions during shutdown!
+  SetTimer, MonitorTick, Off
+  SetTimer, WatchActiveWindow, Off
+
   ; 1. Instantly destroy the close button so it disappears from the screen in 1ms
   If (g_closeHWND > 0) {
     Gui, CloseBtn:Destroy
