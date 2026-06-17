@@ -1,6 +1,6 @@
 ; ============================================================
 ;  Clock System Kiosk Launcher — AutoHotkey v1.1
-;  Windows XP / POSReady 2009 compatible
+;  Greenhalgh's — Windows XP / POSReady 2009 compatible
 ;
 ;  Features:
 ;    - Reads/writes device token from config.json
@@ -25,6 +25,9 @@ global CHROME_EXE    := A_ScriptDir . "\supermium\chrome.exe"
 global SETUP_PAGE    := "file:///" . A_ScriptDir . "\setup.html"
 global OFFLINE_PAGE  := "file:///" . A_ScriptDir . "\offline.html"
 
+global RETRY_MS      := 10000   ; retry server every 10s when offline
+global CHECK_MS      := 15000   ; check server health every 15s when online
+
 ; ── State ────────────────────────────────────────────────────
 global g_token        := ""
 global g_mainPID      := 0
@@ -34,6 +37,7 @@ global g_loaderHWND   := 0
 global g_firstStart   := true  ; Controls visual loader display state
 global g_mode         := ""   ; "setup", "kiosk", "offline"
 global g_offlineCheckMs := 0
+global g_onlineCheckMs  := 0   ; Tracks time elapsed between online health checks
 
 ; ── Startup Cleanup ──────────────────────────────────────────
 ; Purge any lingering chrome processes to prevent profiling conflicts
@@ -84,6 +88,7 @@ Launch:
   ; This prevents the browser from being double-launched and flashed on startup
   If ServerReachable() {
     g_mode := "kiosk"
+    g_onlineCheckMs := 0
   } Else {
     g_mode := "offline"
     g_offlineCheckMs := 0
@@ -102,7 +107,7 @@ OpenMain:
     url := SERVER_BASE . g_token
   }
   Gosub, OpenMainWithUrl
-  SetTimer, MonitorTick, 2000  ; Monitor loop
+  SetTimer, MonitorTick, 2000  ; Monitor loop (evaluates every 2s)
 Return
 
 OpenMainWithUrl:
@@ -324,6 +329,9 @@ GetMainWindowHWND() {
 
 ; ── Periodic monitor: token submit, offline retry, crash recovery ──
 MonitorTick:
+  ; Periodically pull close button to topmost layer so browser clicks never hide it
+  Gosub, RaiseCloseButton
+
   if (g_mainHWND = 0 || !WinExist("ahk_id " . g_mainHWND)) {
     g_mainHWND := GetMainWindowHWND()
   }
@@ -349,13 +357,14 @@ MonitorTick:
     Return
   }
 
-  ; ── offline.html ─────────────────────────────────────────────
+  ; ── offline.html: retry server checking based on RETRY_MS ────
   If (g_mode = "offline") {
     g_offlineCheckMs += 2000
-    If (g_offlineCheckMs >= 10000) {
+    If (g_offlineCheckMs >= RETRY_MS) {
       g_offlineCheckMs := 0
       If ServerReachable() {
         g_mode := "kiosk"
+        g_onlineCheckMs := 0
         Gosub, KillMain
         Gosub, OpenMain
       }
@@ -363,7 +372,7 @@ MonitorTick:
     Return
   }
 
-  ; ── kiosk mode ────────────────────────────────────────────────
+  ; ── kiosk mode: check for crash or online server health drops based on CHECK_MS ──
   If (g_mode = "kiosk") {
     If (g_mainHWND = 0) {
       If ServerReachable() {
@@ -373,23 +382,19 @@ MonitorTick:
         g_offlineCheckMs := 0
         Gosub, OpenMain
       }
+      Return
+    }
+    
+    ; Periodically monitor the server health while online
+    g_onlineCheckMs += 2000
+    If (g_onlineCheckMs >= CHECK_MS) {
+      g_onlineCheckMs := 0
+      If !ServerReachable() {
+        g_mode := "offline"
+        g_offlineCheckMs := 0
+        Gosub, OpenMain
+      }
     }
     Return
   }
-Return
-
-; ── Reset device (removes token, goes back to setup) ─────────
-ResetDevice:
-  MsgBox, 4, Reset Device, This will remove the device token and return to setup.`n`nContinue?
-  IfMsgBox, Yes
-  {
-    FileDelete, %CONFIG_FILE%
-    g_token := ""
-    Gosub, Launch
-  }
-Return
-
-; ── Hidden hotkey to reset device: Ctrl+Alt+Shift+R ──────────
-^!+r::
-  Gosub, ResetDevice
 Return
