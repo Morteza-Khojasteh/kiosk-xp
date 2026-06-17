@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Clock System — Offline</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0f1117;
+    color: #e8eaf0;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .bg-grid {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .center {
+    position: relative;
+    text-align: center;
+    max-width: 400px;
+  }
+
+  .icon {
+    width: 72px;
+    height: 72px;
+    margin: 0 auto 28px;
+    background: #1a1d27;
+    border: 1px solid #2a2d3d;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .icon svg {
+    width: 36px;
+    height: 36px;
+    fill: #f87171;
+  }
+
+  h1 {
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.4px;
+    color: #f0f2f8;
+    margin-bottom: 12px;
+  }
+
+  p {
+    font-size: 14px;
+    color: #6b6f87;
+    line-height: 1.6;
+    margin-bottom: 36px;
+  }
+
+  .retry-bar {
+    background: #1a1d27;
+    border: 1px solid #2a2d3d;
+    border-radius: 8px;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #2a2d3d;
+    border-top-color: #22c55e;
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .retry-text {
+    font-size: 13px;
+    color: #9094aa;
+  }
+
+  .retry-text strong {
+    color: #f0f2f8;
+    font-weight: 500;
+  }
+
+  .time {
+    font-size: 11px;
+    color: #3a3d52;
+    margin-top: 4px;
+  }
+
+  .logo-row {
+    position: fixed;
+    top: 24px;
+    left: 28px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+    background: #22c55e;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .logo-icon svg { width: 18px; height: 18px; fill: #0f1117; }
+  .logo-text { font-size: 14px; font-weight: 600; color: #555870; }
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+
+<div class="logo-row">
+  <div class="logo-icon">
+    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>
+  </div>
+  <span class="logo-text">Clock System</span>
+</div>
+
+<div class="center">
+  <div class="icon">
+    <svg viewBox="0 0 24 24"><path d="M1 1l22 22-1.41 1.41L18.17 21H4c-1.1 0-2-.9-2-2V5c0-.17.02-.34.05-.5L1 3l1-2zm18.59 16.17L19 17V5H7.83L3.41 1H4l16 16zM8 9.83L6 7.83V5h2v4.83zM12 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm4.17 2H4V9.83l-2-2V19h14.17z"/></svg>
+  </div>
+
+  <h1>No Connection</h1>
+  <p>This terminal cannot reach the Clock System server.<br>Check that the network cable is connected and the server is running.</p>
+
+  <div class="retry-bar">
+    <div class="spinner"></div>
+    <div>
+      <div class="retry-text">Retrying connection to <strong>localhost</strong></div>
+      <div class="time" id="nextRetry">Next attempt in 10s</div>
+    </div>
+  </div>
+</div>
+
+<script>
+var SERVER_URL = 'http://localhost/clockapp/';
+var RETRY_INTERVAL = 10; // seconds
+var countdown = RETRY_INTERVAL;
+var label = document.getElementById('nextRetry');
+
+function tryConnect() {
+  var img = new Image();
+  var resolved = false;
+
+  var timer = setTimeout(function() {
+    if (!resolved) {
+      resolved = true;
+      startCountdown();
+    }
+  }, 8000);
+
+  img.onload = img.onerror = function() {
+    if (!resolved) {
+      resolved = true;
+      clearTimeout(timer);
+      // Try a real fetch to confirm
+      window.location.href = SERVER_URL;
+    }
+  };
+  img.src = SERVER_URL + 'favicon.ico?' + Date.now();
+}
+
+function startCountdown() {
+  countdown = RETRY_INTERVAL;
+  var tick = setInterval(function() {
+    countdown--;
+    if (countdown <= 0) {
+      clearInterval(tick);
+      label.textContent = 'Retrying now...';
+      tryConnect();
+    } else {
+      label.textContent = 'Next attempt in ' + countdown + 's';
+    }
+  }, 1000);
+}
+
+// Start immediately
+tryConnect();
+</script>
+</body>
+</html>
