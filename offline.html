@@ -1,204 +1,212 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Clock System — Offline</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Connection Error</title>
 
-  body {
-    background: #0f1117;
-    color: #e8eaf0;
-    font-family: 'Segoe UI', Arial, sans-serif;
-    height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-  }
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
 
-  .bg-grid {
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events: none;
-  }
+      :root {
+        --brand: #16a34a;
+        --brand-light: #22c55e;
+        --danger: #dc2626;
+        --text: #1e293b;
+        --muted: #64748b;
+        --border: #e2e8f0;
+        --bg: #f8fafc;
+        --card: #ffffff;
+      }
 
-  .center {
-    position: relative;
-    text-align: center;
-    max-width: 400px;
-  }
+      body {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background:
+          radial-gradient(
+            circle at top,
+            rgba(34, 197, 94, 0.08),
+            transparent 40%
+          ),
+          var(--bg);
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        padding: 24px;
+      }
 
-  .icon {
-    width: 72px;
-    height: 72px;
-    margin: 0 auto 28px;
-    background: #1a1d27;
-    border: 1px solid #2a2d3d;
-    border-radius: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+      .card {
+        width: 100%;
+        max-width: 600px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        padding: 40px;
+        text-align: center;
+        box-shadow:
+          0 20px 40px rgba(15, 23, 42, 0.08),
+          0 2px 6px rgba(15, 23, 42, 0.04);
+      }
 
-  .icon svg {
-    width: 36px;
-    height: 36px;
-    fill: #f87171;
-  }
+      .icon-wrapper {
+        width: 90px;
+        height: 90px;
+        margin: 0 auto 24px;
+        border-radius: 50%;
+        background: rgba(220, 38, 38, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
 
-  h1 {
-    font-size: 24px;
-    font-weight: 600;
-    letter-spacing: -0.4px;
-    color: #f0f2f8;
-    margin-bottom: 12px;
-  }
+      .icon {
+        width: 48px;
+        height: 48px;
+        color: var(--danger);
+      }
 
-  p {
-    font-size: 14px;
-    color: #6b6f87;
-    line-height: 1.6;
-    margin-bottom: 36px;
-  }
+      h1 {
+        color: var(--text);
+        font-size: 30px;
+        margin-bottom: 12px;
+        font-weight: 700;
+      }
 
-  .retry-bar {
-    background: #1a1d27;
-    border: 1px solid #2a2d3d;
-    border-radius: 8px;
-    padding: 14px 20px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 12px;
-  }
+      .message {
+        color: var(--muted);
+        font-size: 16px;
+        line-height: 1.7;
+        margin-bottom: 28px;
+      }
 
-  .spinner {
-    width: 18px;
-    height: 18px;
-    border: 2px solid #2a2d3d;
-    border-top-color: #22c55e;
-    border-radius: 50%;
-    animation: spin 0.9s linear infinite;
-    flex-shrink: 0;
-  }
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        border-radius: 999px;
+        background: rgba(220, 38, 38, 0.08);
+        color: var(--danger);
+        font-weight: 600;
+        margin-bottom: 24px;
+      }
 
-  @keyframes spin { to { transform: rotate(360deg); } }
+      .dot {
+        width: 8px;
+        height: 8px;
+        background: var(--danger);
+        border-radius: 50%;
+        animation: pulse 1.5s infinite;
+      }
 
-  .retry-text {
-    font-size: 13px;
-    color: #9094aa;
-  }
+      .retry-line {
+        font-size: 13px;
+        color: var(--muted);
+        margin-top: -8px;
+        margin-bottom: 24px;
+      }
 
-  .retry-text strong {
-    color: #f0f2f8;
-    font-weight: 500;
-  }
+      .footer {
+        padding-top: 24px;
+        border-top: 1px solid var(--border);
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.6;
+      }
 
-  .time {
-    font-size: 11px;
-    color: #3a3d52;
-    margin-top: 4px;
-  }
+      .brand {
+        margin-top: 12px;
+        color: var(--brand);
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-size: 13px;
+      }
 
-  .logo-row {
-    position: fixed;
-    top: 24px;
-    left: 28px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
+      @keyframes pulse {
+        0% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.4;
+          transform: scale(1.3);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+    </style>
+  </head>
 
-  .logo-icon {
-    width: 32px;
-    height: 32px;
-    background: #22c55e;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+  <body>
+    <div class="card">
+      <div class="icon-wrapper">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="50"
+          height="50"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="m16 3 5 5" />
+          <path
+            d="M2 12h20A10 10 0 1 1 12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 4-10"
+          />
+          <path d="m21 3-5 5" />
+        </svg>
+      </div>
 
-  .logo-icon svg { width: 18px; height: 18px; fill: #0f1117; }
-  .logo-text { font-size: 14px; font-weight: 600; color: #555870; }
-</style>
-</head>
-<body>
-<div class="bg-grid"></div>
+      <div class="status">
+        <span class="dot"></span>
+        Server Connection Lost
+      </div>
 
-<div class="logo-row">
-  <div class="logo-icon">
-    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>
-  </div>
-  <span class="logo-text">Clock System</span>
-</div>
+      <h1>Unable to Connect</h1>
 
-<div class="center">
-  <div class="icon">
-    <svg viewBox="0 0 24 24"><path d="M1 1l22 22-1.41 1.41L18.17 21H4c-1.1 0-2-.9-2-2V5c0-.17.02-.34.05-.5L1 3l1-2zm18.59 16.17L19 17V5H7.83L3.41 1H4l16 16zM8 9.83L6 7.83V5h2v4.83zM12 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm4.17 2H4V9.83l-2-2V19h14.17z"/></svg>
-  </div>
+      <p class="message">
+        The Staff Clock System cannot reach the server at the moment. Please
+        check the network connection or contact your supervisor if the problem
+        continues.
+      </p>
 
-  <h1>No Connection</h1>
-  <p>This terminal cannot reach the Clock System server.<br>Check that the network cable is connected and the server is running.</p>
+      <p class="retry-line" id="retryLine">Retrying in 10s…</p>
 
-  <div class="retry-bar">
-    <div class="spinner"></div>
-    <div>
-      <div class="retry-text">Retrying connection to <strong>localhost</strong></div>
-      <div class="time" id="nextRetry">Next attempt in 10s</div>
+      <div class="footer">
+        Ensure the till is connected to the company network and try again.
+
+        <div class="brand">Clock System</div>
+      </div>
     </div>
-  </div>
-</div>
 
-<script>
-var SERVER_URL = 'http://localhost/clockapp/';
-var RETRY_INTERVAL = 10; // seconds
-var countdown = RETRY_INTERVAL;
-var label = document.getElementById('nextRetry');
+    <script>
+      /* AHK monitors this page's title for the offline state and
+         performs the actual retry/navigation — see ClockSystem.ahk.
+         This countdown is purely visual feedback for the user. */
+      var RETRY_SECONDS = 10;
+      var countdown = RETRY_SECONDS;
+      var retryLine = document.getElementById("retryLine");
 
-function tryConnect() {
-  var img = new Image();
-  var resolved = false;
+      function tick() {
+        countdown--;
+        if (countdown <= 0) {
+          retryLine.textContent = "Retrying now…";
+          countdown = RETRY_SECONDS;
+        } else {
+          retryLine.textContent = "Retrying in " + countdown + "s…";
+        }
+      }
 
-  var timer = setTimeout(function() {
-    if (!resolved) {
-      resolved = true;
-      startCountdown();
-    }
-  }, 8000);
-
-  img.onload = img.onerror = function() {
-    if (!resolved) {
-      resolved = true;
-      clearTimeout(timer);
-      // Try a real fetch to confirm
-      window.location.href = SERVER_URL;
-    }
-  };
-  img.src = SERVER_URL + 'favicon.ico?' + Date.now();
-}
-
-function startCountdown() {
-  countdown = RETRY_INTERVAL;
-  var tick = setInterval(function() {
-    countdown--;
-    if (countdown <= 0) {
-      clearInterval(tick);
-      label.textContent = 'Retrying now...';
-      tryConnect();
-    } else {
-      label.textContent = 'Next attempt in ' + countdown + 's';
-    }
-  }, 1000);
-}
-
-// Start immediately
-tryConnect();
-</script>
-</body>
+      setInterval(tick, 1000);
+    </script>
+  </body>
 </html>
