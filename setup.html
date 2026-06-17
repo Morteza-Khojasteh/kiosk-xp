@@ -1,304 +1,315 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Clock System — Device Setup</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Clock System Setup</title>
 
-  body {
-    background: #0f1117;
-    color: #e8eaf0;
-    font-family: 'Segoe UI', Arial, sans-serif;
-    height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-  }
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
 
-  .bg-grid {
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events: none;
-  }
+      :root {
+        --brand: #16a34a;
+        --brand-dark: #15803d;
+        --brand-light: #22c55e;
+        --text: #1e293b;
+        --muted: #64748b;
+        --border: #e2e8f0;
+        --border-focus: #16a34a;
+        --bg: #f8fafc;
+        --card: #ffffff;
+        --danger: #dc2626;
+      }
 
-  .card {
-    position: relative;
-    background: #1a1d27;
-    border: 1px solid #2a2d3d;
-    border-radius: 12px;
-    padding: 48px 52px;
-    width: 460px;
-    box-shadow: 0 24px 64px rgba(0,0,0,0.5);
-  }
+      body {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background:
+          radial-gradient(
+            circle at top,
+            rgba(34, 197, 94, 0.08),
+            transparent 40%
+          ),
+          var(--bg);
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        padding: 24px;
+      }
 
-  .logo-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 36px;
-  }
+      .card {
+        width: 100%;
+        max-width: 600px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        padding: 20px 40px 20px 40px;
+        box-shadow:
+          0 20px 40px rgba(15, 23, 42, 0.08),
+          0 2px 6px rgba(15, 23, 42, 0.04);
+      }
 
-  .logo-icon {
-    width: 40px;
-    height: 40px;
-    background: #22c55e;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+      .icon-wrapper {
+        width: 90px;
+        height: 90px;
+        margin: 0 auto 24px;
+        border-radius: 50%;
+        background: rgba(22, 163, 74, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
 
-  .logo-icon svg {
-    width: 22px;
-    height: 22px;
-    fill: #0f1117;
-  }
+      .icon {
+        width: 48px;
+        height: 48px;
+        color: var(--brand);
+      }
 
-  .logo-text {
-    font-size: 18px;
-    font-weight: 600;
-    letter-spacing: -0.3px;
-    color: #f0f2f8;
-  }
+      h1 {
+        color: var(--text);
+        font-size: 26px;
+        font-weight: 700;
+        text-align: center;
+        margin-bottom: 8px;
+      }
 
-  .logo-sub {
-    font-size: 11px;
-    color: #555870;
-    text-transform: uppercase;
-    letter-spacing: 1.2px;
-    margin-top: 1px;
-  }
+      .subtitle {
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1.6;
+        text-align: center;
+        margin-bottom: 32px;
+      }
 
-  h1 {
-    font-size: 22px;
-    font-weight: 600;
-    color: #f0f2f8;
-    letter-spacing: -0.4px;
-    margin-bottom: 8px;
-  }
+      .field {
+        margin-bottom: 20px;
+      }
 
-  .subtitle {
-    font-size: 13px;
-    color: #6b6f87;
-    line-height: 1.5;
-    margin-bottom: 32px;
-  }
+      label {
+        display: block;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text);
+        margin-bottom: 8px;
+      }
 
-  label {
-    display: block;
-    font-size: 12px;
-    font-weight: 500;
-    color: #9094aa;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    margin-bottom: 8px;
-  }
+      input[type="text"] {
+        width: 100%;
+        padding: 12px 16px;
+        font-size: 15px;
+        font-family: inherit;
+        color: var(--text);
+        background: var(--bg);
+        border: 1.5px solid var(--border);
+        border-radius: 10px;
+        outline: none;
+        transition:
+          border-color 0.2s ease,
+          box-shadow 0.2s ease;
+      }
 
-  input[type=text] {
-    width: 100%;
-    background: #0f1117;
-    border: 1px solid #2a2d3d;
-    border-radius: 8px;
-    padding: 12px 16px;
-    font-size: 15px;
-    color: #f0f2f8;
-    font-family: 'Courier New', monospace;
-    letter-spacing: 0.5px;
-    outline: none;
-    transition: border-color 0.15s;
-  }
+      input[type="text"]:focus {
+        border-color: var(--border-focus);
+        box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+        background: var(--card);
+      }
 
-  input[type=text]:focus {
-    border-color: #22c55e;
-  }
+      input::placeholder {
+        color: #94a3b8;
+      }
 
-  input[type=text]::placeholder {
-    color: #3a3d52;
-    font-family: 'Segoe UI', Arial, sans-serif;
-    letter-spacing: 0;
-  }
+      .error-msg {
+        display: none;
+        align-items: center;
+        gap: 6px;
+        margin-top: 8px;
+        font-size: 13px;
+        color: var(--danger);
+        font-weight: 500;
+      }
 
-  .error {
-    display: none;
-    font-size: 12px;
-    color: #f87171;
-    margin-top: 8px;
-  }
+      .error-msg.visible {
+        display: flex;
+      }
 
-  .error.visible { display: block; }
+      button {
+        width: 100%;
+        padding: 14px;
+        margin-top: 8px;
+        border: none;
+        border-radius: 10px;
+        background: var(--brand);
+        color: white;
+        font-size: 15px;
+        font-weight: 600;
+        font-family: inherit;
+        cursor: pointer;
+        transition:
+          background 0.2s ease,
+          box-shadow 0.2s ease,
+          transform 0.1s ease;
+        box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+      }
 
-  button {
-    margin-top: 24px;
-    width: 100%;
-    background: #22c55e;
-    color: #0f1117;
-    border: none;
-    border-radius: 8px;
-    padding: 13px;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.15s, transform 0.1s;
-    font-family: 'Segoe UI', Arial, sans-serif;
-  }
+      button:hover {
+        background: var(--brand-dark);
+        box-shadow: 0 6px 16px rgba(22, 163, 74, 0.4);
+      }
 
-  button:hover  { background: #16a34a; }
-  button:active { transform: scale(0.99); }
+      button:active {
+        transform: scale(0.98);
+        box-shadow: 0 2px 8px rgba(22, 163, 74, 0.2);
+      }
 
-  button:disabled {
-    background: #2a2d3d;
-    color: #555870;
-    cursor: not-allowed;
-    transform: none;
-  }
+      button:disabled {
+        background: #86efac;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+      }
 
-  .divider {
-    height: 1px;
-    background: #2a2d3d;
-    margin: 28px 0;
-  }
+      .footer {
+        margin-top: 28px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border);
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.6;
+        text-align: center;
+      }
 
-  .server-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 12px;
-    color: #555870;
-  }
+      .brand {
+        margin-top: 10px;
+        color: var(--brand);
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-size: 13px;
+      }
+    </style>
+  </head>
 
-  .dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #22c55e;
-    flex-shrink: 0;
-    box-shadow: 0 0 6px #22c55e;
-  }
+  <body>
+    <div class="card">
+      <div class="icon-wrapper">
+        <svg
+          class="icon"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="1.8"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0
+             002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0
+             001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0
+             00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0
+             00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0
+             00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0
+             00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0
+             001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07
+             2.572-1.065z"
+          />
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+          />
+        </svg>
+      </div>
 
-  .dot.offline { background: #f87171; box-shadow: 0 0 6px #f87171; }
+      <h1>Device Setup</h1>
+      <p class="subtitle">
+        Enter the device token assigned to this till to register it with the
+        Clock System.
+      </p>
 
-  .version {
-    position: absolute;
-    bottom: 16px;
-    right: 20px;
-    font-size: 11px;
-    color: #2a2d3d;
-  }
-</style>
-</head>
-<body>
-<div class="bg-grid"></div>
-<div class="card">
+      <div class="field">
+        <label for="token">Device Token</label>
+        <input
+          id="token"
+          type="text"
+          placeholder="e.g. TILL-A1B2C3D4"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <div class="error-msg" id="errorMsg">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          Please enter a valid device token.
+        </div>
+      </div>
 
-  <div class="logo-row">
-    <div class="logo-icon">
-      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>
+      <button id="saveBtn">Save &amp; Launch</button>
+
+      <div class="footer">
+        Contact your supervisor if you do not have a device token.
+        <div class="brand">Clock System</div>
+      </div>
     </div>
-    <div>
-      <div class="logo-text">Clock System</div>
-      <div class="logo-sub">company</div>
-    </div>
-  </div>
 
-  <h1>Device Setup</h1>
-  <p class="subtitle">Enter the device token provided by your administrator to register this terminal.</p>
+    <script>
+      var saveBtn = document.getElementById("saveBtn");
+      var tokenIn = document.getElementById("token");
+      var errorMsg = document.getElementById("errorMsg");
 
-  <label for="token">Device Token</label>
-  <input type="text" id="token" placeholder="Paste your token here" autocomplete="off" spellcheck="false" />
-  <div class="error" id="error">Please enter a valid device token.</div>
+      function handleSave() {
+        var token = tokenIn.value.trim();
 
-  <button id="saveBtn" onclick="saveToken()">Activate Device</button>
+        if (!token) {
+          errorMsg.classList.add("visible");
+          tokenIn.focus();
+          return;
+        }
 
-  <div class="divider"></div>
+        errorMsg.classList.remove("visible");
+        saveBtn.disabled = true;
+        saveBtn.textContent = "Saving…";
 
-  <div class="server-row">
-    <div class="dot" id="dot"></div>
-    <span id="serverStatus">Checking server connection...</span>
-  </div>
+        /* AHK bridge: window title is polled by ClockSystem.ahk.
+           Setting it to this sentinel string triggers the launcher
+           to write config.json and switch to kiosk mode. */
+        document.title = "CMD:SAVE_TOKEN:" + token;
 
-  <div class="version">v2.1.0</div>
-</div>
+        setTimeout(function () {
+          saveBtn.disabled = false;
+          saveBtn.textContent = "Save & Launch";
+          errorMsg.textContent = "Failed to save token. Please try again.";
+          errorMsg.classList.add("visible");
+          document.title = "Clock System Setup";
+        }, 4000);
+      }
 
-<script>
-var SERVER_BASE = 'http://localhost/clockapp/';
+      saveBtn.addEventListener("click", handleSave);
 
-// Check server reachability
-function checkServer() {
-  var dot = document.getElementById('dot');
-  var status = document.getElementById('serverStatus');
-  var img = new Image();
-  var done = false;
+      tokenIn.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") handleSave();
+      });
 
-  var timer = setTimeout(function() {
-    if (!done) {
-      done = true;
-      dot.className = 'dot offline';
-      status.textContent = 'Server unreachable — check network connection';
-    }
-  }, 5000);
-
-  img.onload = function() {
-    if (!done) {
-      done = true;
-      clearTimeout(timer);
-      dot.className = 'dot';
-      status.textContent = 'Server reachable at localhost';
-    }
-  };
-  img.onerror = function() {
-    if (!done) {
-      done = true;
-      clearTimeout(timer);
-      // onerror can still mean server is up (no favicon = normal)
-      dot.className = 'dot';
-      status.textContent = 'Server reachable at localhost';
-    }
-  };
-  img.src = SERVER_BASE + 'favicon.ico?' + Date.now();
-}
-
-function saveToken() {
-  var val = document.getElementById('token').value.trim();
-  var err = document.getElementById('error');
-  var btn = document.getElementById('saveBtn');
-
-  if (!val) {
-    err.className = 'error visible';
-    err.textContent = 'Please enter a valid device token.';
-    return;
-  }
-
-  err.className = 'error';
-  btn.disabled = true;
-  btn.textContent = 'Activating...';
-
-  // Write token to a local file via AHK bridge
-  // AHK monitors window title for commands
-  document.title = 'CMD:SAVE_TOKEN:' + val;
-
-  // AHK will close this window and open the main app
-  // Fallback: if AHK doesn't respond in 3s, show error
-  setTimeout(function() {
-    btn.disabled = false;
-    btn.textContent = 'Activate Device';
-    err.className = 'error visible';
-    err.textContent = 'Could not save token — launcher not running.';
-    document.title = 'Clock System — Device Setup';
-  }, 3000);
-}
-
-// Allow Enter key to submit
-document.getElementById('token').addEventListener('keydown', function(e) {
-  if (e.keyCode === 13) saveToken();
-});
-
-checkServer();
-</script>
-</body>
+      tokenIn.addEventListener("input", function () {
+        errorMsg.classList.remove("visible");
+      });
+    </script>
+  </body>
 </html>
