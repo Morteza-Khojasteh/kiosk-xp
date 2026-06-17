@@ -1,6 +1,6 @@
 ; ============================================================
 ;  Clock System Kiosk Launcher — AutoHotkey v1.1
-;   Windows XP / POSReady 2009 compatible
+;  Windows XP / POSReady 2009 compatible
 ;
 ;  Features:
 ;    - Reads/writes device token from config.json
@@ -15,6 +15,7 @@
 #NoEnv
 #SingleInstance Force
 #Persistent
+SetTitleMatchMode, 2  ; Match partial titles for robust targeting
 SetWorkingDir %A_ScriptDir%
 
 ; ── Configuration ────────────────────────────────────────────
@@ -23,19 +24,32 @@ global CONFIG_FILE   := A_ScriptDir . "\config.json"
 global CHROME_EXE    := A_ScriptDir . "\supermium\chrome.exe"
 global SETUP_PAGE    := "file:///" . A_ScriptDir . "\setup.html"
 global OFFLINE_PAGE  := "file:///" . A_ScriptDir . "\offline.html"
-global RETRY_MS      := 10000   ; retry server every 10s when offline
-global CHECK_MS      := 15000   ; check server health every 15s when online
 
 ; ── State ────────────────────────────────────────────────────
-global g_token       := ""
-global g_chromePID   := 0
-global g_mode        := ""   ; "setup", "kiosk", "offline"
-global g_closeHwnd   := 0
+global g_token        := ""
+global g_mainPID      := 0
+global g_mainHWND     := 0
+global g_closeHWND    := 0
+global g_loaderHWND   := 0
+global g_firstStart   := true  ; Controls visual loader display state
+global g_mode         := ""   ; "setup", "kiosk", "offline"
+global g_offlineCheckMs := 0
+
+; ── Startup Cleanup ──────────────────────────────────────────
+; Purge any lingering chrome processes to prevent profiling conflicts
+Loop {
+  Process, Exist, chrome.exe
+  If !ErrorLevel
+    Break
+  Process, Close, chrome.exe
+}
+Sleep, 500
 
 ; ── Startup ──────────────────────────────────────────────────
+Gosub, CreateStartupLoader
 Gosub, ReadToken
-Gosub, DrawCloseButton
 Gosub, Launch
+SetTimer, WatchActiveWindow, 400  ; Sync close button visibility with active workspace
 Return
 
 ; ── Read token from config.json ──────────────────────────────
@@ -43,7 +57,6 @@ ReadToken:
   g_token := ""
   If FileExist(CONFIG_FILE) {
     FileRead, raw, %CONFIG_FILE%
-    ; Simple JSON parse — extract "token":"VALUE"
     RegExMatch(raw, """token""\s*:\s*""([^""]+)""", m)
     g_token := m1
   }
@@ -57,91 +70,232 @@ WriteToken(tok) {
   FileAppend, %json%, %CONFIG_FILE%
 }
 
-; ── Launch correct page ───────────────────────────────────────
+; ── Main launch sequence ───────────────────────────────────────
 Launch:
-  Gosub, KillChrome
+  Gosub, KillMain
+
   If (g_token = "") {
     g_mode := "setup"
-    url    := SETUP_PAGE
+    Gosub, OpenMain
+    Return
+  }
+
+  ; Pre-flight network check: run check while the splash screen is active
+  ; This prevents the browser from being double-launched and flashed on startup
+  If ServerReachable() {
+    g_mode := "kiosk"
   } Else {
-    ; Test server before loading kiosk URL
-    If ServerReachable() {
-      g_mode := "kiosk"
-      url    := SERVER_BASE . g_token
-    } Else {
-      g_mode := "offline"
-      url    := OFFLINE_PAGE
+    g_mode := "offline"
+    g_offlineCheckMs := 0
+  }
+  
+  Gosub, OpenMain
+Return
+
+; ── Open the correct page for current g_mode ──────────────────
+OpenMain:
+  If (g_mode = "setup") {
+    url := SETUP_PAGE
+  } Else If (g_mode = "offline") {
+    url := OFFLINE_PAGE
+  } Else {
+    url := SERVER_BASE . g_token
+  }
+  Gosub, OpenMainWithUrl
+  SetTimer, MonitorTick, 2000  ; Monitor loop
+Return
+
+OpenMainWithUrl:
+  If !FileExist(CHROME_EXE) {
+    Gosub, DestroyStartupLoader
+    MsgBox, 16, Clock System Error, Supermium not found:`n%CHROME_EXE%`n`nPlace the supermium folder next to ClockSystem.exe
+    ExitApp
+  }
+  
+  ; Transition Masking: if we are re-launching the browser, draw the loader
+  ; to completely hide the desktop background during the loading lag
+  if (g_loaderHWND = 0) {
+    g_firstStart := true
+    Gosub, CreateStartupLoader
+  }
+
+  args := "--kiosk --no-first-run --disable-translate --disable-infobars"
+       . " --disable-session-crashed-bubble --disable-features=TranslateUI"
+       . " --disable-gpu --disable-software-rasterizer --disable-gpu-compositing"
+       . " --enable-low-end-device-mode"
+       . " --user-data-dir=" . """" . A_ScriptDir . "\profile_main"""
+       . " " . """" . url . """"
+  Run, %CHROME_EXE% %args%,, , g_mainPID
+  
+  ; Wait up to 5 seconds until the window is fully visible on screen
+  g_mainHWND := 0
+  Loop, 20 {
+    g_mainHWND := GetMainWindowHWND()
+    if (g_mainHWND > 0 && DllCall("IsWindowVisible", "Ptr", g_mainHWND)) {
+      break
+    }
+    Sleep, 250
+  }
+  
+  if (g_mainHWND > 0) {
+    Gosub, StyleMainWindow
+    WinActivate, ahk_id %g_mainHWND%
+    
+    ; Destroy the loader only when the new window is active, then show the close button
+    Gosub, DestroyStartupLoader
+    Gosub, RaiseCloseButton
+  } else {
+    Gosub, DestroyStartupLoader
+    MsgBox, 16, Clock System Error, Failed to initialize the kiosk browser.
+    ExitApp
+  }
+Return
+
+; ── Force the main window into borderless fullscreen (Fake Kiosk Fallback) ─
+StyleMainWindow:
+  If (g_mainHWND > 0) {
+    WinSet, Style, -0xC40000, ahk_id %g_mainHWND%
+    WinMove, ahk_id %g_mainHWND%,, 0, 0, %A_ScreenWidth%, %A_ScreenHeight%
+  }
+Return
+
+; ── Kill the main kiosk window ─────────────────────────────────
+KillMain:
+  g_mainHWND := GetMainWindowHWND()
+  If (g_mainHWND > 0) {
+    WinClose, ahk_id %g_mainHWND%
+    Sleep, 400
+  }
+  If (g_mainPID > 0) {
+    Process, Close, %g_mainPID%
+    g_mainPID := 0
+  }
+  g_mainHWND := 0
+Return
+
+; ── Professional Startup Loader GUI (Splash Screen) ─────────────────────────
+CreateStartupLoader:
+  if (!g_firstStart)
+    Return
+
+  ; Temporarily hide the close button if it exists so it doesn't float over the loader
+  if (g_closeHWND > 0) {
+    WinHide, ahk_id %g_closeHWND%
+  }
+
+  Gui, Loader:New, +AlwaysOnTop -Caption +ToolWindow +LastFound +HWNDg_loaderHWND
+  Gui, Loader:Color, 1E293B  ; Flat slate dark background
+  
+  ; Logo Text
+  Gui, Loader:Font, s20 bold, Arial
+  Gui, Loader:Add, Text, x0 y35 w450 Center c10B981, Staff Clock System
+  
+  ; Subtext
+  Gui, Loader:Font, s11, Arial
+  Gui, Loader:Add, Text, x0 y80 w450 Center c94A3B8, Initializing secure terminal...
+  
+  ; Static custom emerald status bar
+  Gui, Loader:Add, Progress, x50 y115 w350 h6 Background334155 c10B981, 45
+  
+  Gui, Loader:Show, w450 h160 Center NoActivate
+Return
+
+DestroyStartupLoader:
+  if (g_loaderHWND > 0) {
+    Gui, Loader:Destroy
+    g_loaderHWND := 0
+    g_firstStart := false  ; Suppress future flashes during setup/reloads
+  }
+Return
+
+; ── Native Close Button GUI ─────────────────────────────────────────────────
+CreateNativeCloseButton:
+  buttonSize := 45
+  ; Calculate position: Top-Right of the screen with 20px padding
+  posX := A_ScreenWidth - buttonSize - 20
+  posY := 20
+  
+  Gui, CloseBtn:New, +AlwaysOnTop -Caption +ToolWindow +LastFound +HWNDg_closeHWND
+  Gui, CloseBtn:Color, CC3333  ; Flat crimson background
+  
+  Gui, CloseBtn:Font, s16 bold, Arial
+  Gui, CloseBtn:Add, Text, x0 y10 w%buttonSize% h35 Center cWhite gDoClose, X
+  
+  Gui, CloseBtn:Show, x%posX% y%posY% w%buttonSize% h%buttonSize% NoActivate
+Return
+
+RaiseCloseButton:
+  ; Only create close button if the splash screen is gone and main window is active
+  If (g_firstStart)
+    Return
+
+  If (g_closeHWND = 0 || !WinExist("ahk_id " . g_closeHWND)) {
+    Gosub, CreateNativeCloseButton
+  } Else {
+    WinSet, AlwaysOnTop, On, ahk_id %g_closeHWND%
+    WinShow, ahk_id %g_closeHWND%
+  }
+Return
+
+; ── Focus Synchronization Engine (Handles Window Switching Safely) ──────────
+WatchActiveWindow:
+  ; If loader is displaying transitions, skip sync cycle
+  if (g_loaderHWND > 0)
+    Return
+
+  activeHWND := WinActive("A")
+  if (g_mainHWND > 0 && WinExist("ahk_id " . g_mainHWND)) {
+    ; Only display the close button if the active foreground window is either the Kiosk or the button itself
+    if (activeHWND = g_mainHWND || activeHWND = g_closeHWND) {
+      if (g_closeHWND > 0 && !DllCall("IsWindowVisible", "Ptr", g_closeHWND)) {
+        WinShow, ahk_id %g_closeHWND%
+        WinSet, AlwaysOnTop, On, ahk_id %g_closeHWND%
+      }
+    } else {
+      ; Another window has been focused; seamlessly hide the close button
+      if (g_closeHWND > 0 && DllCall("IsWindowVisible", "Ptr", g_closeHWND)) {
+        WinHide, ahk_id %g_closeHWND%
+      }
     }
   }
-  Gosub, OpenChrome
-  Gosub, StartMonitor
 Return
 
-; ── Open Supermium in kiosk mode ─────────────────────────────
-OpenChrome:
-  If !FileExist(CHROME_EXE) {
-    MsgBox, 16, Clock System Error, Supermium not found:`n%CHROME_EXE%`n`nPlace the supermium folder next to ClockSystem.ahk
-    ExitApp
-  }
-  args := "--kiosk --no-first-run --disable-translate"
-       . " --disable-infobars --disable-session-crashed-bubble"
-       . " --disable-features=TranslateUI"
-       . " --app=" . """" . url . """"
-  Run, %CHROME_EXE% %args%,, , g_chromePID
-  ; Wait for window, then force focus
-  Sleep, 2500
-  WinWait, ahk_pid %g_chromePID%,, 10
-  WinActivate, ahk_pid %g_chromePID%
-  WinSet, AlwaysOnTop, Off, ahk_pid %g_chromePID%
-  ; Bring close button back on top
-  Gosub, ShowCloseButton
-Return
-
-; ── Kill any running Supermium instances ──────────────────────
-KillChrome:
-  If (g_chromePID > 0) {
-    Process, Close, %g_chromePID%
-    g_chromePID := 0
-    Sleep, 800
-  }
-  ; Belt-and-braces: kill by name too
-  Process, Close, chrome.exe
-  Sleep, 400
-Return
-
-; ── Draw the floating close button ───────────────────────────
-DrawCloseButton:
-  Gui, Close: Destroy
-  Gui, Close: +AlwaysOnTop +ToolWindow -Caption +Owner
-  Gui, Close: Color, 1a1d27
-  Gui, Close: Font, s11 w600 cFFFFFF, Segoe UI
-  Gui, Close: Add, Button, x0 y0 w80 h32 gDoClose, ✕  Close
-  Gui, Close: Show, x0 y0 w80 h32 NoActivate, ClockSystemClose
-  WinSet, TransColor, , ClockSystemClose
-  g_closeHwnd := WinExist("ClockSystemClose")
-Return
-
-ShowCloseButton:
-  Gui, Close: Show, NoActivate
-Return
-
-; ── Close button clicked ──────────────────────────────────────
+; ── Close everything immediately ────────────────────────────────
 DoClose:
-  MsgBox, 4, Clock System, Are you sure you want to close Clock System?
-  IfMsgBox, Yes
-  {
-    Gosub, KillChrome
-    Gui, Close: Destroy
-    ExitApp
+  ; 1. Instantly destroy the close button so it disappears from the screen in 1ms
+  If (g_closeHWND > 0) {
+    Gui, CloseBtn:Destroy
+    g_closeHWND := 0
   }
+  Sleep, 50  ; Let the OS repaint the screen immediately
+  
+  ; 2. Terminate the main container cleanly
+  Gosub, KillMain
+  
+  ; 3. Asynchronously flush background processes in the background
+  Run, taskkill /F /IM chrome.exe,, Hide
+  Process, Close, chrome.exe
+  
+  ExitApp
 Return
 
-; ── Hotkey: Ctrl+Alt+Q ───────────────────────────────────────
+; ── Hotkey: Ctrl+Alt+Q also closes ─────────────────────────────
 ^!q::
   Gosub, DoClose
 Return
 
-; ── Server reachability check (synchronous via COM) ──────────
+; ── Hotkey: Ctrl+Alt+Shift+R resets device token ───────────────
+^!+r::
+  MsgBox, 4, Reset Device, This will remove the device token and return to setup.`n`nContinue?
+  IfMsgBox, Yes
+  {
+    FileDelete, %CONFIG_FILE%
+    g_token := ""
+    Gosub, Launch
+  }
+Return
+
+; ── Server reachability check ───────────────────────────────────
 ServerReachable() {
   global SERVER_BASE
   try {
@@ -155,51 +309,69 @@ ServerReachable() {
   }
 }
 
-; ── Monitor: watch window title for token command from setup.html ──
-;    setup.html sets document.title = "CMD:SAVE_TOKEN:<token>"
-;    Also monitors online/offline state transitions
-StartMonitor:
-  SetTimer, MonitorTick, 1500
-Return
+; ── Helper Function: Handle Crawler (Only executed when handle is lost) ──
+GetMainWindowHWND() {
+  WinGet, winList, List, ahk_class Chrome_WidgetWin_1
+  Loop, %winList% {
+    this_hwnd := winList%A_Index%
+    WinGetTitle, this_title, ahk_id %this_hwnd%
+    if (this_title != "" && !InStr(this_title, "close.html") && !InStr(this_title, "CMD:CLOSE_APP")) {
+      return this_hwnd
+    }
+  }
+  return 0
+}
 
+; ── Periodic monitor: token submit, offline retry, crash recovery ──
 MonitorTick:
-  ; ── Handle setup page token submission ──────────────────────
+  if (g_mainHWND = 0 || !WinExist("ahk_id " . g_mainHWND)) {
+    g_mainHWND := GetMainWindowHWND()
+  }
+
+  ; ── setup.html sets title to CMD:SAVE_TOKEN:<token> ───────────
   If (g_mode = "setup") {
-    WinGetTitle, title, ahk_pid %g_chromePID%
-    If (InStr(title, "CMD:SAVE_TOKEN:") = 1) {
-      tok := SubStr(title, 16)  ; strip "CMD:SAVE_TOKEN:"
-      tok := Trim(tok)
-      If (tok != "") {
-        WriteToken(tok)
-        g_token := tok
-        Gosub, Launch   ; relaunch into kiosk mode
+    If (g_mainHWND > 0) {
+      WinGetTitle, title, ahk_id %g_mainHWND%
+      If (InStr(title, "CMD:SAVE_TOKEN:") = 1) {
+        tok := Trim(SubStr(title, 16))
+        If (tok != "") {
+          ; Strip trailing browser branding strings from target token
+          tok := RegExReplace(tok, "i)\s*-\s*Supermium\s*$")
+          tok := RegExReplace(tok, "i)\s*-\s*Google Chrome\s*$")
+          tok := RegExReplace(tok, "i)\s*-\s*Chromium\s*$")
+          
+          WriteToken(tok)
+          g_token := tok
+          Gosub, Launch
+        }
       }
     }
     Return
   }
 
-  ; ── Handle offline → online transition ──────────────────────
+  ; ── offline.html ─────────────────────────────────────────────
   If (g_mode = "offline") {
-    If ServerReachable() {
-      g_mode := "kiosk"
-      url    := SERVER_BASE . g_token
-      Gosub, KillChrome
-      Gosub, OpenChrome
+    g_offlineCheckMs += 2000
+    If (g_offlineCheckMs >= 10000) {
+      g_offlineCheckMs := 0
+      If ServerReachable() {
+        g_mode := "kiosk"
+        Gosub, KillMain
+        Gosub, OpenMain
+      }
     }
     Return
   }
 
-  ; ── Handle online → offline transition ──────────────────────
+  ; ── kiosk mode ────────────────────────────────────────────────
   If (g_mode = "kiosk") {
-    ; Check if chrome window still exists
-    If !WinExist("ahk_pid " . g_chromePID) {
-      ; Chrome died — check if server is reachable
+    If (g_mainHWND = 0) {
       If ServerReachable() {
-        Gosub, OpenChrome  ; restart chrome
+        Gosub, OpenMain
       } Else {
         g_mode := "offline"
-        url    := OFFLINE_PAGE
-        Gosub, OpenChrome
+        g_offlineCheckMs := 0
+        Gosub, OpenMain
       }
     }
     Return
