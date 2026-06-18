@@ -1,93 +1,292 @@
 # kiosk-xp
 
-=====================================================
-  XP Kiosk — Setup Instructions
-  Windows XP / POSReady 2009
-=====================================================
+A lightweight Windows XP kiosk launcher using **AutoHotkey** and **Supermium**.
 
-FOLDER STRUCTURE (everything in one folder):
---------------------------------------------
-kiosk-xp\
-  START.bat              <- Double-click to launch
-  kiosk-xp.ahk        <- Main launcher script
-  AutoHotkey.exe         <- AHK runtime (you provide)
-  setup.html             <- Device token entry screen
-  offline.html           <- No-connection screen
-  config.json            <- Created automatically on first run
-  supermium\
-    chrome.exe           <- Supermium browser (you provide)
-    (all other Supermium files)
+---
 
+## System Requirements
 
-STEP 1 — Get AutoHotkey v1.1 (32-bit)
---------------------------------------
+* Windows XP SP3
+* AutoHotkey v1.1 (32-bit Unicode)
+* Supermium Browser (XP-compatible Chromium)
+
+---
+
+# Installation Guide
+
+## Folder Structure
+
+Place all files in a single directory:
+
+```text
+kiosk-xp/
+│
+├── START.bat              # Double-click to launch
+├── kiosk-xp.ahk           # Main launcher script
+├── AutoHotkey.exe         # AutoHotkey runtime
+├── setup.html             # Device token setup screen
+├── offline.html           # Offline screen
+├── config.json            # Created automatically on first run
+│
+└── supermium/
+    ├── chrome.exe         # Supermium browser
+    └── (other Supermium files)
+```
+
+---
+
+## Step 1 — Install AutoHotkey v1.1 (32-bit)
+
 On a machine with internet access:
-  https://www.autohotkey.com/download/1.1/
 
-Download: AutoHotkey_1.1.xx.xx.zip
-Inside the zip, find: AutoHotkeyU32.exe
-Rename it to: AutoHotkey.exe
-Place it in the kiosk-xp\ folder.
+**Download:**
 
-IMPORTANT: Use v1.1 NOT v2.x — the script is v1.1 syntax.
-IMPORTANT: Use the U32 (Unicode 32-bit) variant for XP.
+https://www.autohotkey.com/download/1.1/
 
+Download the ZIP package:
 
-STEP 2 — Get Supermium (XP-compatible Chromium)
--------------------------------------------------
-Supermium is a Chromium fork that supports Windows XP.
+```text
+AutoHotkey_1.1.xx.xx.zip
+```
 
-Download from: https://github.com/win32ss/supermium/releases
-Get the ZIP version (portable, not installer).
-Extract it and rename the folder to: supermium
-Place the supermium\ folder inside kiosk-xp\.
+Inside the ZIP archive, locate:
 
-The file kiosk-xp\supermium\chrome.exe must exist.
+```text
+AutoHotkeyU32.exe
+```
 
+Rename it to:
 
-STEP 3 — Deploy to XP machine
-------------------------------
-Copy the entire kiosk-xp\ folder to the XP machine.
-Suggested location: C:\kiosk-xp\
+```text
+AutoHotkey.exe
+```
 
-Double-click START.bat to launch.
+Copy it into the root `kiosk-xp` folder.
 
-On first run, the setup screen will appear.
-Enter the device token provided by your administrator.
-The token is saved to config.json automatically.
-The app will load the kiosk screen immediately after.
+### Important
 
+> Use **AutoHotkey v1.1**, not v2.x.
+>
+> The launcher script uses v1.1 syntax and is not compatible with v2.
+>
+> Use the **Unicode 32-bit (U32)** version for Windows XP.
 
-FEATURES
---------
-  Close button     Visible button top-left, always on top
-  Close hotkey     Ctrl + Alt + Q
-  Reset device     Ctrl + Alt + Shift + R (re-shows setup screen)
-  Offline page     Shown automatically if server unreachable
-  Auto-retry       Checks server every 10s when offline
-  Auto-restart     Relaunches browser if it crashes
+---
 
+## Step 2 — Install Supermium
 
-AUTOSTART ON WINDOWS XP BOOT
------------------------------
-To launch automatically when XP starts:
-  1. Right-click START.bat -> Create Shortcut
-  2. Move shortcut to:
-     C:\Documents and Settings\All Users\Start Menu\Programs\Startup\
+Supermium is a Chromium-based browser that supports Windows XP.
 
+### Download
 
-TROUBLESHOOTING
----------------
-"Supermium not found"
-  -> Check supermium\chrome.exe exists in the kiosk-xp folder
+GitHub Releases:
 
-"AutoHotkey not found"
-  -> Check AutoHotkey.exe exists in the kiosk-xp folder
+https://github.com/win32ss/supermium/releases
 
-Token screen keeps appearing
-  -> config.json may be missing or corrupt
-  -> Delete config.json and re-enter token
+### Installation
 
-Server shows offline but network is connected
-  -> Check that localhost is reachable (ping from cmd)
-  -> Check IIS is running on the server
+1. Download the **portable ZIP** version.
+2. Extract the archive.
+3. Rename the extracted folder to:
+
+```text
+supermium
+```
+
+4. Place the folder inside:
+
+```text
+kiosk-xp/
+```
+
+Final structure:
+
+```text
+kiosk-xp/
+└── supermium/
+    └── chrome.exe
+```
+
+### Verify
+
+Ensure the following file exists:
+
+```text
+kiosk-xp/supermium/chrome.exe
+```
+
+---
+
+## Step 3 — Deploy to the XP Machine
+
+Copy the entire `kiosk-xp` folder to the target machine.
+
+Recommended location:
+
+```text
+C:\kiosk-xp\
+```
+
+Launch the kiosk by running:
+
+```text
+START.bat
+```
+
+### First Run
+
+When launched for the first time:
+
+1. The setup screen will appear.
+2. Enter the device token provided by your administrator.
+3. The token is automatically saved to:
+
+```text
+config.json
+```
+
+4. The kiosk application will start immediately.
+
+---
+
+# Features
+
+| Feature           | Description                                        |
+| ----------------- | -------------------------------------------------- |
+| Close Button      | Always-visible close button in the top-left corner |
+| Close Hotkey      | `Ctrl + Alt + Q`                                   |
+| Reset Device      | `Ctrl + Alt + Shift + R`                           |
+| Offline Detection | Displays offline screen when server is unreachable |
+| Auto Retry        | Re-checks server connectivity every 10 seconds     |
+| Auto Restart      | Automatically relaunches browser if it crashes     |
+
+---
+
+# Automatic Startup
+
+To launch the kiosk automatically when Windows XP starts:
+
+### 1. Create a Shortcut
+
+Right-click:
+
+```text
+START.bat
+```
+
+Select:
+
+```text
+Create Shortcut
+```
+
+### 2. Move the Shortcut
+
+Copy the shortcut to:
+
+```text
+C:\Documents and Settings\All Users\Start Menu\Programs\Startup\
+```
+
+The kiosk will now launch automatically after system boot.
+
+---
+
+# Troubleshooting
+
+## Supermium Not Found
+
+**Error**
+
+```text
+Supermium not found
+```
+
+**Solution**
+
+Verify the following file exists:
+
+```text
+kiosk-xp\supermium\chrome.exe
+```
+
+---
+
+## AutoHotkey Not Found
+
+**Error**
+
+```text
+AutoHotkey not found
+```
+
+**Solution**
+
+Verify the following file exists:
+
+```text
+kiosk-xp\AutoHotkey.exe
+```
+
+---
+
+## Setup Screen Appears Every Time
+
+### Possible Cause
+
+The configuration file is missing or corrupted.
+
+### Solution
+
+Delete:
+
+```text
+config.json
+```
+
+Restart the application and enter the device token again.
+
+---
+
+## Offline Screen Appears Despite Network Connectivity
+
+### Checks
+
+1. Verify the server is reachable:
+
+```cmd
+ping localhost
+```
+
+2. Verify IIS is running on the server.
+
+3. Verify firewall rules are not blocking access.
+
+4. Verify the configured application URL is correct.
+
+---
+
+# Security Notes
+
+* Device tokens are stored locally in `config.json`.
+* Restrict access to the kiosk folder where possible.
+* Prevent users from modifying the configuration files.
+* Disable unnecessary Windows XP services for kiosk deployments.
+
+---
+
+# Support
+
+For deployment issues, verify:
+
+* AutoHotkey is installed correctly.
+* Supermium launches manually.
+* Network connectivity is available.
+* The backend server is reachable.
+* The device token is valid.
+
+---
+
+**Version:** 1.0
+**Platform:** Windows XP SP3
+**Browser:** Supermium Chromium
