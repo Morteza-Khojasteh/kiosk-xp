@@ -6,10 +6,11 @@
 ;    - Reads/writes device token from config.json
 ;    - Shows local setup.html if no token saved
 ;    - Loads Supermium in kiosk mode with device token URL
-;    - Floating close button (always on top)
+;    - Floating close button (always on top, delayed appearance)
 ;    - Hotkey: Ctrl+Alt+Q to close
 ;    - Monitors for offline state, shows offline.html
 ;    - Auto-retries server when back online
+;    - Cold-boot tolerant browser launch with one auto-retry
 ; ============================================================
 
 #NoEnv
@@ -27,6 +28,7 @@ global OFFLINE_PAGE  := "file:///" . A_ScriptDir . "\offline.html"
 
 global RETRY_MS      := 10000   ; retry server every 10s when offline
 global CHECK_MS      := 15000   ; check server health every 15s when online
+global CLOSE_BTN_DELAY_MS := 1500 ; delay after window appears before showing close button
 
 ; ── State ────────────────────────────────────────────────────
 global g_token        := ""
@@ -38,6 +40,7 @@ global g_firstStart   := true  ; Controls visual loader display state
 global g_mode         := ""   ; "setup", "kiosk", "offline"
 global g_offlineCheckMs := 0
 global g_onlineCheckMs  := 0   ; Tracks time elapsed between online health checks
+global g_closeAllowedAfter := 0 ; Tick-count timestamp after which the close button may appear
 
 ; ── Startup Cleanup ──────────────────────────────────────────
 ; Purge any lingering chrome processes to prevent profiling conflicts
@@ -110,6 +113,10 @@ OpenMain:
   SetTimer, MonitorTick, 2000  ; Monitor loop (evaluates every 2s)
 Return
 
+; ── Launch the browser, tolerating slow cold-boot startup ─────
+; Waits up to 25s per attempt for the window to appear, detects an
+; early process death (real crash) and retries once before giving up.
+; Close button is intentionally NOT shown immediately — see g_closeAllowedAfter.
 OpenMainWithUrl:
   If !FileExist(CHROME_EXE) {
     Gosub, DestroyStartupLoader
@@ -130,25 +137,48 @@ OpenMainWithUrl:
        . " --enable-low-end-device-mode"
        . " --user-data-dir=" . """" . A_ScriptDir . "\profile_main"""
        . " " . """" . url . """"
-  Run, %CHROME_EXE% %args%,, , g_mainPID
-  
-  ; Wait up to 5 seconds until the window is fully visible on screen
+
   g_mainHWND := 0
-  Loop, 20 {
-    g_mainHWND := GetMainWindowHWND()
-    if (g_mainHWND > 0 && DllCall("IsWindowVisible", "Ptr", g_mainHWND)) {
-      break
+
+  Loop, 2 {  ; allow one full relaunch attempt before giving up
+    Run, %CHROME_EXE% %args%,, , g_mainPID
+
+    ; Cold boot can take a long time on first run; poll for up to 25s,
+    ; but bail out early if the process dies (real crash, not just slow).
+    Loop, 100 {  ; 100 × 250ms = 25 seconds max
+      g_mainHWND := GetMainWindowHWND()
+      if (g_mainHWND > 0 && DllCall("IsWindowVisible", "Ptr", g_mainHWND)) {
+        break
+      }
+      Process, Exist, %g_mainPID%
+      if (!ErrorLevel) {
+        ; process died before painting a window — stop waiting, retry
+        break
+      }
+      Sleep, 250
     }
-    Sleep, 250
+
+    if (g_mainHWND > 0 && DllCall("IsWindowVisible", "Ptr", g_mainHWND)) {
+      break  ; success, no need for second attempt
+    }
+
+    ; Clean up a dead/stuck launch before retrying
+    Process, Close, %g_mainPID%
+    g_mainPID := 0
+    Sleep, 500
   }
   
   if (g_mainHWND > 0) {
     Gosub, StyleMainWindow
     WinActivate, ahk_id %g_mainHWND%
     
-    ; Destroy the loader only when the new window is active, then show the close button
+    ; Destroy the loader only when the new window is active
     Gosub, DestroyStartupLoader
-    Gosub, RaiseCloseButton
+
+    ; Don't show the close button immediately — give the page time to
+    ; actually render first, otherwise it flashes over a blank/loading window.
+    ; MonitorTick's regular RaiseCloseButton call will pick it up once the delay passes.
+    g_closeAllowedAfter := A_TickCount + CLOSE_BTN_DELAY_MS
   } else {
     Gosub, DestroyStartupLoader
     MsgBox, 16, Clock System Error, Failed to initialize the kiosk browser.
@@ -235,6 +265,10 @@ Return
 RaiseCloseButton:
   ; Only create close button if the splash screen is gone and main window is active
   If (g_firstStart)
+    Return
+
+  ; Respect the post-launch delay so the button doesn't appear before the page renders
+  If (A_TickCount < g_closeAllowedAfter)
     Return
 
   If (g_closeHWND = 0 || !WinExist("ahk_id " . g_closeHWND)) {
@@ -337,6 +371,8 @@ GetMainWindowHWND() {
 ; ── Periodic monitor: token submit, offline retry, crash recovery ──
 MonitorTick:
   ; Periodically pull close button to topmost layer so browser clicks never hide it
+  ; (RaiseCloseButton internally respects g_closeAllowedAfter, so this is a no-op
+  ; until the post-launch delay has elapsed)
   Gosub, RaiseCloseButton
 
   if (g_mainHWND = 0 || !WinExist("ahk_id " . g_mainHWND)) {
